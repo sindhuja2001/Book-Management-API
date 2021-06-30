@@ -1,5 +1,7 @@
+require("dotenv").config();
 //Import Express
 const express= require("express");
+const mongoose= require("mongoose");
 //Initialize express
 const grokkingBook= express();
 
@@ -9,6 +11,16 @@ const database= require("./database");
 
 //Configure Json
 grokkingBook.use(express.json());
+
+//Establish COnnection
+mongoose.connect(process.env.MONGO_URL, {
+    
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+  useCreateIndex: true
+})
+.then(()=> console.log("Connection Established"));
 
 //Add http methods
 
@@ -324,13 +336,128 @@ Method: Put
 grokkingBook.put("/publications/update/book/name/:isbn", (req, res)=> {
 
     //Update Publication database
-    database.publications.forEach((publication)=> {
-        if(publication.id=== parseInt(req.body.publicationId)){
-            return publication.books.push(req.params.isbn);
-        }
+   database.publications.forEach((publication)=> {
+       if(publication.id=== req.body.publicationId){
+           return publication.books.push(req.params.isbn);
+       }
+   });
+
+     //Update book database
+
+     database.books.forEach((book)=> {
+         if(book.ISBN=== req.params.isbn){
+             book.publication= req.body.publicationId;
+             return;
+         }
+     });
+
+     return res.json({books: database.books, publications: database.publications,
+    message: "Successfully updated publication",
     });
-    //Update book database
-})
+});
+
+/*
+Route: /book/delete/:isbn
+Description: to delete a book
+Access: Public
+Parameter: ISBN
+Method: Delete
+*/
+//Build an API to delete a book
+grokkingBook.delete("/book/delete/:isbn", (req, res)=> {
+    const updatedBookDatabase= database.books.filter((book)=> {
+        book.ISBN !== req.params.isbn;
+    })
+     
+    database.books= updatedBookDatabase;
+    return res.json({books: database.books});
+});
+/*
+Route: /author/delete/:id
+Description: to delete an author Id
+Access: Public
+Parameter: Id
+Method: Delete
+*/
+//Build an API to delete an author
+
+grokkingBook.delete("/author/delete/:id", (req, res)=> {
+    const updatedAuthorDatabase= database.authors.filter((author)=> {
+        author.id !== req.params.id;
+    })
+
+    database.authors= updatedAuthorDatabase;
+    return res.json({authors: database.authors});
+});
+
+
+/*
+Route: /publication/delete/:id
+Description: to delete a publication Id
+Access: Public
+Parameter: Id
+Method: Delete
+*/
+//Build an API to delete an Publication Id
+
+grokkingBook.delete("/publication/delete/:id", (req, res)=> {
+    const updatedPublicationDatabase= database.publications.filter((publication)=> {
+        publication.id!== req.params.id;
+    });
+    database.publications= updatedPublicationDatabase;
+    return res.json({publication: database.publications});
+});
+
+
+/*
+Route: book/delete/author/:isbn/:authorId
+Description: to delete an authorId
+Access: Public
+Parameter: ISBN, author Id
+Method: Delete
+*/
+//Build an API to delete an Author Id from the book
+
+grokkingBook.delete("book/delete/author/:isbn/:authorId", (req, res)=> {
+
+     //update book database
+   database.books.forEach((book)=> {
+       if(book.ISBN=== req.params.isbn){
+           const newAuthorList= book.Author.filter((author)=> 
+               author !== parseInt(req.params.authorId)
+           );
+           book.Author= newAuthorList;
+           return;
+       }
+   });
+   //update author database
+    database.authors.forEach((author)=> {
+      if(author.id=== parseInt(req.params.authorId)){
+        const newBooksList= author.books.filter((book)=> 
+            book !== req.params.isbn
+        );
+        author.books= newBooksList;
+        return;
+      }
+   });
+    return res.json({books:database.books, authors:database.authors, message: "Author was deleted"});
+});
+   
+
+
+/*
+Route: /publication/delete/:id
+Description: to delete an authorId
+Access: Public
+Parameter: ISBN
+Method: Delete
+*/
+//Build an API to delete an Author Id
+
+
+
+
+
 
 //Add a Port
 grokkingBook.listen(2001, ()=> console.log("Server is running"));
