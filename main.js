@@ -8,6 +8,13 @@ const grokkingBook= express();
 //Import Database
 const database= require("./database");
 
+//Import Models
+const BookModel= require("./database/book");
+const AuthorModel= require("./database/author");
+const PublicationModel= require("./database/publication");
+
+
+
 
 //Configure Json
 grokkingBook.use(express.json());
