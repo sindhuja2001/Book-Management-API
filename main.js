@@ -1,6 +1,9 @@
 require("dotenv").config();
 //Import Express
 const express= require("express");
+
+
+//Import Mongoose
 const mongoose= require("mongoose");
 //Initialize express
 const grokkingBook= express();
@@ -9,9 +12,9 @@ const grokkingBook= express();
 const database= require("./database");
 
 //Import Models
-const BookModel= require("./database/book");
-const AuthorModel= require("./database/author");
-const PublicationModel= require("./database/publication");
+const BookModel= require("./book");
+const AuthorModel= require("./author");
+const PublicationModel= require("./publication");
 
 
 
@@ -40,26 +43,33 @@ Method: Get
 */
 
 //Build an api to get all the books
-grokkingBook.get("/", (req, res)=>{
-    return res.json({books: database.books});
+grokkingBook.get("/", async(req, res)=>{
+    const getAllBooks=await BookModel.find();
+    return res.json({books: getAllBooks});
 });
 
 
 /* 
-Route: "/:ISBN"
+Route: "/is/:ISBN"
 Description: to get all the specific books
 Access: Public
 Parameter: ISBN
 Method: Get
 */
 //Build an api to get all the specific book
-grokkingBook.get("/is/:ISBN", (req, res)=> {
-    const getSpecificBook= database.books.filter((book)=> book.ISBN=== req.params.ISBN);
-    
+grokkingBook.get("/is/:ISBN", async(req, res)=> {
+    const getSpecificBook= await BookModel.findOne({ISBN: req.params.ISBN});
 
-    if(getSpecificBook.length=== 0){
+    if(!getSpecificBook){
         return res.json({error: `No Book Found for the requested ISBN ${req.params.ISBN}`});
     }
+        return res.json({book: getSpecificBook});
+    // const getSpecificBook= database.books.filter((book)=> book.ISBN=== req.params.ISBN);
+    
+
+    // if(getSpecificBook.length=== 0){
+    //     return res.json({error: `No Book Found for the requested ISBN ${req.params.ISBN}`});
+    // }
     return res.json({book: getSpecificBook});
 });
 
@@ -72,12 +82,18 @@ Parameter: category
 Method: Get
 */
 //To build an api to get list of books based on category
-grokkingBook.get("/c/:category", (req, res)=> {
-      const listOfBooks= database.books.filter((book)=> book.Category.includes(req.params.category));
+grokkingBook.get("/c/:category", async(req, res)=> {
+    const listOfBooks= await BookModel.findOne({Category: req.params.category});
+    if(!listOfBooks){
+        return res.json({error: `No Book found based on category ${req.params.category}`});
+    }
 
-      if(listOfBooks.length=== 0){
-          return res.json({error: `No Book found based on category ${req.params.category}`});
-      }
+
+    //   const listOfBooks= database.books.filter((book)=> book.Category.includes(req.params.category));
+
+    //   if(listOfBooks.length=== 0){
+    //       return res.json({error: `No Book found based on category ${req.params.category}`});
+    //   }
       return res.json({book: listOfBooks});
 });
 
@@ -89,17 +105,23 @@ Parameter: None
 Method: Get
 */
 
-//Build an api for the books based on category
-grokkingBook.get("/lang/:la", (req, res)=>{
-   const language= database.books.filter((book)=> book.Language.includes(req.params.la));
-   if(language.length=== 0){
-    return res.json({error: `No Book found based on category ${req.params.la}`});
-}
+//Build an api for the books based on language
+grokkingBook.get("/lang/:la", async(req, res)=>{
+    const language= await BookModel.findOne({Language: req.params.la});
+
+    if(!language){
+        return res.json({error: `No Book found based on category ${req.params.la}`});
+    }
+
+//    const language= database.books.filter((book)=> book.Language.includes(req.params.la));
+//    if(language.length=== 0){
+//     return res.json({error: `No Book found based on category ${req.params.la}`});
+// }
    return res.json({books: language});
 });
 
 /* 
-Route: "/id"
+Route: "/author"
 Description: to get all the books
 Access: Public
 Parameter: None
@@ -108,8 +130,9 @@ Method: Get
 
 //Build an api for all the authors
 
-grokkingBook.get("/author", (req, res)=> {
-   return res.json({authors: database.authors});
+grokkingBook.get("/author", async(req, res)=> {
+    const allAuthor= await AuthorModel.find();
+   return res.json({authors: allAuthor});
 });
 
 /* 
@@ -120,13 +143,19 @@ Parameter: None
 Method: Get
 */
 //Build an api to get all the specific author
-grokkingBook.get("/author/specific/:ISBN", (req, res)=> {
-    const getSpecificPublication= database.authors.filter((author)=> author.books.includes(req.params.ISBN));
-    
+grokkingBook.get("/author/specific/:ISBN", async(req, res)=> {
 
-    if(getSpecificPublication.length=== 0){
+    const getSpecificPublication= await AuthorModel.findOne({books: req.params.ISBN});
+
+    if(!getSpecificPublication){
         return res.json({error: `No Book Found for the requested ISBN ${req.params.ISBN}`});
     }
+    // const getSpecificPublication= database.authors.filter((author)=> author.books.includes(req.params.ISBN));
+    
+
+    // if(getSpecificPublication.length=== 0){
+    //     return res.json({error: `No Book Found for the requested ISBN ${req.params.ISBN}`});
+    // }
     return res.json({authors: getSpecificPublication});
 });
 
@@ -139,12 +168,17 @@ Method: Get
 */
 //Build an api to get all the list of author based on books
 
-grokkingBook.get("/author/book/:ISBN", (req, res)=> {
-     const Book= database.authors.filter((author)=> author.books.includes(req.params.ISBN));
+grokkingBook.get("/author/book/:ISBN", async(req, res)=> {
+    const Book= await AuthorModel.findOne({books: req.params.ISBN});
+    if(!Book){
+        return res.json({error: `No List of authors found for ${req.params.ISBN}`});
+    }
 
-     if(Book.length=== 0){
-         return res.json({error: `No List of authors found for ${req.params.ISBN}`});
-     }
+    //  const Book= database.authors.filter((author)=> author.books.includes(req.params.ISBN));
+
+    //  if(Book.length=== 0){
+    //      return res.json({error: `No List of authors found for ${req.params.ISBN}`});
+    //  }
      return res.json({authors: Book});
 });
 
@@ -158,8 +192,9 @@ Method: Get
 
 //Build an api for all the Publications
 
-grokkingBook.get("/publication", (req, res)=> {
-    return res.json({publication: database.publications});
+grokkingBook.get("/publication", async(req, res)=> {
+    const allPublication= await PublicationModel.find();
+    return res.json({publication: allPublication});
  });
 
 /* 
@@ -170,13 +205,19 @@ Parameter: ISBN
 Method: Get
 */
 //Build an api to get all the specific Publication
-grokkingBook.get("/author/specific/publication/:ISBN", (req, res)=> {
-    const getSpecificPublication= database.publications.filter((author)=> author.books.includes(req.params.ISBN));
-    
+grokkingBook.get("/author/specific/publication/:ISBN", async(req, res)=> {
 
-    if(getSpecificPublication.length=== 0){
+    const getSpecificPublication= await PublicationModel.findOne({ISBN: req.params.ISBN});
+
+    if(!getSpecificPublication){
         return res.json({error: `No Book Found for the requested ISBN ${req.params.ISBN}`});
     }
+    // const getSpecificPublication= database.publications.filter((author)=> author.books.includes(req.params.ISBN));
+    
+
+    // if(getSpecificPublication.length=== 0){
+    //     return res.json({error: `No Book Found for the requested ISBN ${req.params.ISBN}`});
+    // }
     return res.json({authors: getSpecificPublication});
 });
 
@@ -189,12 +230,18 @@ Method: Get
 */
 //Build an api to get all the list of author based on books
 
-grokkingBook.get("/author/book/publication/:ISBN", (req, res)=> {
-     const listOfBookAuthors= database.publications.filter((author)=> author.books.includes(req.params.ISBN));
+grokkingBook.get("/author/book/publication/:ISBN", async(req, res)=> {
+    const listOfBookAuthors= await PublicationModel.findOne({ISBN: req.params.ISBN});
 
-     if(listOfBookAuthors.length=== 0){
-         return res.json({error: `No List of authors found for ${req.params.ISBN}`});
-     }
+    if(!listOfBookAuthors){
+        return res.json({error: `No List of authors found for ${req.params.ISBN}`});
+    }
+
+    //  const listOfBookAuthors= database.publications.filter((author)=> author.books.includes(req.params.ISBN));
+
+    //  if(listOfBookAuthors.length=== 0){
+    //      return res.json({error: `No List of authors found for ${req.params.ISBN}`});
+    //  }
      return res.json({authors: listOfBookAuthors});
 });
 
@@ -208,10 +255,12 @@ Method: Post
 
 //We Build an API to Add new Book
 
-grokkingBook.post("/book/add", (req, res)=> {
+grokkingBook.post("/book/add", async(req, res)=> {
     const { addBook }= req.body;
-    database.books.push(addBook);
-    return res.json({books: database.books});
+
+   const addNewBook= await BookModel.create(addBook);
+    //database.books.push(addBook);
+    return res.json({books: addNewBook, message: "Book was added"});
 });
 
 
@@ -225,15 +274,17 @@ Method: Post
 
 //Build an API to Add New Author
 
-grokkingBook.post("/author/add", (req, res)=> {
+grokkingBook.post("/author/add", async(req, res)=> {
     const { addAuthor }= req.body;
-    database.authors.push(addAuthor);
-    return res.json({author: database.authors});
+
+    const addNewAuthor= await AuthorModel.create({addAuthor});
+    //database.authors.push(addAuthor);
+    return res.json({author: addNewAuthor});
 });
 
 /*
-Route: /author/add
-Description: to Add new Author
+Route: /publication/add
+Description: to Add new Publication
 Access: Public
 Parameter: ISBN
 Method: Post
@@ -241,10 +292,12 @@ Method: Post
 
 //We Build an API to Add new Publication 
 
-grokkingBook.post("/publication/add", (req, res)=> {
+grokkingBook.post("/publication/add", async(req, res)=> {
     const { addPublication }= req.body;
-    database.publications.push(addPublication);
-    return res.json({publication: database.publications});
+
+    const addNewPublication= await PublicationModel.create({addPublication});
+    //database.publications.push(addPublication);
+    return res.json({publication: addNewPublication});
 });
 
 
