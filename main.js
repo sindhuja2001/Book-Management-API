@@ -277,9 +277,9 @@ Method: Post
 grokkingBook.post("/author/add", async(req, res)=> {
     const { addAuthor }= req.body;
 
-    const addNewAuthor= await AuthorModel.create({addAuthor});
+    const addNewAuthor= await AuthorModel.create(addAuthor);
     //database.authors.push(addAuthor);
-    return res.json({author: addNewAuthor});
+    return res.json({author: addNewAuthor, message: "author was added"});
 });
 
 /*
@@ -293,11 +293,15 @@ Method: Post
 //We Build an API to Add new Publication 
 
 grokkingBook.post("/publication/add", async(req, res)=> {
-    const { addPublication }= req.body;
 
-    const addNewPublication= await PublicationModel.create({addPublication});
-    //database.publications.push(addPublication);
-    return res.json({publication: addNewPublication});
+  const { addPublication }= req.body;
+  const addNewPublication= await PublicationModel.create(addPublication);
+ 
+  //database.publications.push(addPublication);
+
+  return res.json({publication: addNewPublication, message: "Publication was added"});
+
+   
 });
 
 
@@ -311,14 +315,26 @@ Method: Put
 
 //We build an API to Update book title
 
-grokkingBook.put("/book/update/title/:isbn", (req, res)=> {
-   database.books.forEach((book)=> {
-       if(book.ISBN=== req.params.isbn){
-           book.title= req.body.newBookTitle;
-           return;
-       }
-   });
-return res.json({books: database.books}); 
+grokkingBook.put("/book/update/title/:isbn", async(req, res)=> {
+
+    const UpdatedBook= await BookModel.findOneAndUpdate(
+     {
+         ISBN: req.params.isbn,
+     },
+     {
+         title: req.body.newBookTitle,
+     },
+     {
+        new: true,
+     }
+    );
+//    database.books.forEach((book)=> {
+//        if(book.ISBN=== req.params.isbn){
+//            book.title= req.body.newBookTitle;
+//            return;
+//        }
+//    });
+return res.json({books: UpdatedBook}); 
 });
 
 /*
@@ -331,22 +347,49 @@ Method: Put
 
 //We build an API to Update new author Id
 
-grokkingBook.put("/book/update/author/name/:isbn/:newAuthorId", (req, res)=> {
+grokkingBook.put("/book/update/author/name/:isbn/:newAuthorId", async(req, res)=> {
+
+
+    const BookDataBaseIsbn= await BookModel.findOneAndUpdate(
+     {
+         ISBN: req.params.isbn,
+     },
+     {
+         $addToSet: {
+             Author: parseInt(req.params.newAuthorId),
+         },
+     },
+     {
+         new: true,
+     }
+    );
     //update book Database
-    database.books.forEach((book)=> {
-        if(book.ISBN=== req.params.isbn){
-           return book.Author.push(parseInt(req.params.newAuthorId));
+    // database.books.forEach((book)=> {
+    //     if(book.ISBN=== req.params.isbn){
+    //        return book.Author.push(parseInt(req.params.newAuthorId));
+    //     }
+    // });
+     const AuthorDatabaseId= await AuthorModel.findOneAndUpdate(
+         {
+             id: parseInt(req.params.newAuthorId),
+         },
+         {
+             $addToSet: {
+                 books: req.params.isbn,
+             },
+         },
+         {
+            new: true,
         }
-    });
-
+     );
     //Update Author Database
-   database.authors.forEach((author)=> {
-       if(author.id=== parseInt(req.params.newAuthorId)){
-           return author.books.push(req.params.isbn);
-       }
-   });
+//    database.authors.forEach((author)=> {
+//        if(author.id=== parseInt(req.params.newAuthorId)){
+//            return author.books.push(req.params.isbn);
+//        }
+//    });
 
-   return res.json({books: database.books, author: database.authors});
+   return res.json({books: BookDataBaseIsbn, author: AuthorDatabaseId});
 });
 /*
 Route: /book/author/name/:id
@@ -356,14 +399,26 @@ Parameter: ID
 Method: Put
 */
 //Build an API to update an author name
-grokkingBook.put("/book/author/name/:id", (req, res)=> {
-    database.authors.forEach((author)=> {
-        if(author.id=== parseInt(req.params.id)){
-            author.name= req.body.newAuthorName;
-            return;
+grokkingBook.put("/book/author/name/:id", async (req, res)=> {
+
+    const UpdatedAuthorName= await AuthorModel.findOneAndUpdate(
+        {
+            id: parseInt(req.params.id),
+        },
+        {
+            name: req.body.newAuthorName,
+        },
+        {
+            new: true,
         }
-    });
- return res.json({author: database.authors}); 
+    );
+    // database.authors.forEach((author)=> {
+    //     if(author.id=== parseInt(req.params.id)){
+    //         author.name= req.body.newAuthorName;
+    //         return;
+    //     }
+    // });
+ return res.json({author: UpdatedAuthorName}); 
  });
 
  /*
@@ -375,14 +430,26 @@ Method: Put
 */
 //Build an API to update an publication name
 
-grokkingBook.put("/book/publication/name/:id", (req, res)=> {
-    database.publications.forEach((publication)=> {
-        if(publication.id=== parseInt(req.params.id)){
-            publication.name= req.body.newPublicationName;
-            return;
+grokkingBook.put("/book/publication/name/:id", async(req, res)=> {
+
+    const UpdatePublication=  await PublicationModel.findOneAndUpdate(
+        {
+            id: parseInt(req.params.id),
+        },
+        {
+            name: req.body.newPublicationName,
+        },
+        {
+            new: true,
         }
-    });
- return res.json({publication: database.publications}); 
+    );
+    // database.publications.forEach((publication)=> {
+    //     if(publication.id=== parseInt(req.params.id)){
+    //         publication.name= req.body.newPublicationName;
+    //         return;
+    //     }
+    // });
+ return res.json({publication: UpdatePublication}); 
  });
 /*
 Route: /book/author/name/:id
@@ -393,25 +460,48 @@ Method: Put
 */
 //Build an  API to update a book in the Publication
 
-grokkingBook.put("/publications/update/book/name/:isbn", (req, res)=> {
+grokkingBook.put("/publications/update/book/name/:isbn", async(req, res)=> {
+
+    const PublicationDataBaseId= await PublicationModel.findOneAndUpdate(
+        {
+            id: req.body.publicationId,
+        },
+        {
+            $addToSet: {
+                books: req.params.isbn,
+            },
+        }
+    ); 
 
     //Update Publication database
-   database.publications.forEach((publication)=> {
-       if(publication.id=== req.body.publicationId){
-           return publication.books.push(req.params.isbn);
-       }
-   });
+//    database.publications.forEach((publication)=> {
+//        if(publication.id=== req.body.publicationId){
+//            return publication.books.push(req.params.isbn);
+//        }
+//    });
 
+
+   const BookDatabasePublication= await BookModel.findOneAndUpdate(
+       {
+           ISBN: req.params.isbn,
+       },
+       {
+            publication: req.body.publicationId,
+       },
+       {
+           new: true,
+       }
+   );
      //Update book database
 
-     database.books.forEach((book)=> {
-         if(book.ISBN=== req.params.isbn){
-             book.publication= req.body.publicationId;
-             return;
-         }
-     });
+    //  database.books.forEach((book)=> {
+    //      if(book.ISBN=== req.params.isbn){
+    //          book.publication= req.body.publicationId;
+    //          return;
+    //      }
+    //  });
 
-     return res.json({books: database.books, publications: database.publications,
+     return res.json({books: BookDatabasePublication, publications: PublicationDataBaseId,
     message: "Successfully updated publication",
     });
 });
@@ -424,13 +514,16 @@ Parameter: ISBN
 Method: Delete
 */
 //Build an API to delete a book
-grokkingBook.delete("/book/delete/:isbn", (req, res)=> {
-    const updatedBookDatabase= database.books.filter((book)=> {
-        book.ISBN !== req.params.isbn;
-    })
+grokkingBook.delete("/book/delete/:isbn", async(req, res)=> {
+    const deleteBook= await BookModel.findOneAndDelete({
+        ISBN: req.params.isbn,
+    });
+    // const updatedBookDatabase= database.books.filter((book)=> {
+    //     book.ISBN !== req.params.isbn;
+    // })
      
-    database.books= updatedBookDatabase;
-    return res.json({books: database.books});
+    //database.books= updatedBookDatabase;
+    return res.json({books: deleteBook, message: "Book was deleted"});
 });
 /*
 Route: /author/delete/:id
@@ -441,13 +534,17 @@ Method: Delete
 */
 //Build an API to delete an author
 
-grokkingBook.delete("/author/delete/:id", (req, res)=> {
-    const updatedAuthorDatabase= database.authors.filter((author)=> {
-        author.id !== req.params.id;
-    })
+grokkingBook.delete("/author/delete/:id", async(req, res)=> {
 
-    database.authors= updatedAuthorDatabase;
-    return res.json({authors: database.authors});
+    const updatedAuthorDatabase= await AuthorModel.findOneAndDelete({
+        id: req.params.id,
+    });
+    // const updatedAuthorDatabase= database.authors.filter((author)=> {
+    //     author.id !== req.params.id;
+    // })
+
+    // database.authors= updatedAuthorDatabase;
+    return res.json({authors: updatedAuthorDatabase});
 });
 
 
@@ -460,12 +557,16 @@ Method: Delete
 */
 //Build an API to delete an Publication Id
 
-grokkingBook.delete("/publication/delete/:id", (req, res)=> {
-    const updatedPublicationDatabase= database.publications.filter((publication)=> {
-        publication.id!== req.params.id;
-    });
-    database.publications= updatedPublicationDatabase;
-    return res.json({publication: database.publications});
+grokkingBook.delete("/publication/delete/:id", async(req, res)=> {
+
+    const updatedPublicationDatabase= await PublicationModel.findOneAndDelete({
+        id: req.params.id,
+    })
+    // const updatedPublicationDatabase= database.publications.filter((publication)=> {
+    //     publication.id!== req.params.id;
+    // });
+    // database.publications= updatedPublicationDatabase;
+    return res.json({publication: updatedPublicationDatabase});
 });
 
 
@@ -478,29 +579,56 @@ Method: Delete
 */
 //Build an API to delete an Author Id from the book
 
-grokkingBook.delete("book/delete/author/:isbn/:authorId", (req, res)=> {
+grokkingBook.delete("book/delete/author/:isbn/:authorId", async(req, res)=> {
+
+    const updatedDatabaseBook= await BookModel.findOneAndUpdate(
+        {
+             ISBN: req.params.isbn,
+        },
+        {
+          $pull:{
+             Author: parseInt(req.params.authorId),
+          },
+        },
+        {
+            new: true,
+        }
+        );
 
      //update book database
-   database.books.forEach((book)=> {
-       if(book.ISBN=== req.params.isbn){
-           const newAuthorList= book.Author.filter((author)=> 
-               author !== parseInt(req.params.authorId)
-           );
-           book.Author= newAuthorList;
-           return;
-       }
-   });
+//    database.books.forEach((book)=> {
+//        if(book.ISBN=== req.params.isbn){
+//            const newAuthorList= book.Author.filter((author)=> 
+//                author !== parseInt(req.params.authorId)
+//            );
+//            book.Author= newAuthorList;
+//            return;
+//        }
+//    });
    //update author database
-    database.authors.forEach((author)=> {
-      if(author.id=== parseInt(req.params.authorId)){
-        const newBooksList= author.books.filter((book)=> 
-            book !== req.params.isbn
-        );
-        author.books= newBooksList;
-        return;
-      }
-   });
-    return res.json({books:database.books, authors:database.authors, message: "Author was deleted"});
+   const UpdatedDatabaseAuthor= await AuthorModel.findOneAndUpdate(
+   {
+       id:  parseInt(req.params.authorId),
+   },
+   {
+       $pull:{
+           books: req.params.isbn,
+       },
+   },
+   {
+       new: true,
+   }
+   );
+//     database.authors.forEach((author)=> {
+//       if(author.id=== parseInt(req.params.authorId)){
+//         const newBooksList= author.books.filter((book)=> 
+//             book !== req.params.isbn
+//         );
+//         author.books= newBooksList;
+//         return;
+//       }
+//    });
+    return res.json({books:updatedDatabaseBook, authors:UpdatedDatabaseAuthor, message: "Author was deleted"});
 });
    
 
